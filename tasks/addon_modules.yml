@@ -1,4 +1,7 @@
 ---
+# TODO: better docs.
+# This task configures a specific setting of a modules
+# there can be many....
 # This task requires a new token
 - name: "Checking addon module status"
   uri:

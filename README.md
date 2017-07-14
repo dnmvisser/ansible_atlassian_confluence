@@ -1,9 +1,10 @@
-atlassian_confluence
-=========
+Federated Atlassian Confluence
+==============================
 
-An Ansible role to deploy an Atlassian Confluence instance with federated authentication, based on a zipped backup file.
-Atlassian does not offer a way to deploy Confluence entirely; there are several manual steps involved, see https://jira.atlassian.com/browse/CONF-45381.
-Since there is no way to preseed a configuration file, or use an API to do this post-install, this role resorts to HTTP requests and cookies to fill in the web forms needed to set things up.
+An Ansible role for fully automated deployment of Atlassian Confluence with federated authentication, based on a zipped backup file.
+This role was created because Atlassian does not offer a good way to deploy Confluence; their upgrade and installation paths contain many tedious manual steps: https://jira.atlassian.com/browse/CONF-45381.
+
+Since there is no way of preseeding configuration files, or use an API to do this post-install, this role uses HTTP requests to fill in the web forms needed to set things up.
 
 
 Requirements
@@ -11,9 +12,11 @@ Requirements
 
 This role assumes you want to run a production instance, so **you need a valid license** for this to work. See the example playbook on how to configure this. You can get free one-month trial licenses, see https://confluence.atlassian.com/display/DOC/Start+your+trial.
 
-The role installs OpenJDK which is [not officially supported by Atlassian](https://confluence.atlassian.com/confkb/is-openjdk-supported-by-confluence-297667642.html). It runs fine, and the `number of problems` isn't pointing to any real problems. If you do need support you should get Oracle JDK installed.
+The role installs OpenJDK which is [not officially supported by Atlassian](https://confluence.atlassian.com/confkb/is-openjdk-supported-by-confluence-297667642.html). It runs fine, but if you need "support" you should Oracle JDK installed.
 
 The role uses PostgreSQL, but with some minor adjustments you can also use MySQL.
+
+Currently written for Ubuntu 16.04 LTS, but with little adjustments it should work on other distros.
 
 Role Variables
 --------------
