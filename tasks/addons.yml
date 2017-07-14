@@ -1,0 +1,24 @@
+---
+# 
+#- debug: var=atlassian_confluence_admin_password
+
+- name: Establishing list of installed plugins
+  uri:
+    #url: http://localhost:8090/rest/plugins/1.0/?token={{rest_init.upm_token}}
+    url: http://localhost:8090/rest/plugins/1.0/
+    user: "{{ atlassian_confluence_admin_username }}"
+    password: "{{ atlassian_confluence_admin_password }}"
+    force_basic_auth: yes
+    return_content: yes
+  register: plugin_response
+
+- set_fact:
+    plugins_installed : "{{ plugin_response.content | from_json | json_query('plugins[?userInstalled].key')}}"
+
+- set_fact:
+    plugins_need_installing: "{{ plugins|difference(plugins_installed) }}"
+    
+- include: addon.yml
+  with_items: "{{ plugins_need_installing|default([]) }}"
+  loop_control:
+    loop_var: plugin

@@ -1,0 +1,24 @@
+---
+# https://developer.atlassian.com/confdev/development-resources/confluence-build-information
+# The build number is listed inside a JAR, so we'll have to do some work to get to it.
+# TODO shall we clean up these dirs after use?
+
+- name: Create temp dir
+  file: path="{{ atlassian_confluence_tmp_jar_dir }}"
+    state=directory
+  changed_when: false
+
+- name: Unpack confluence jar
+  command: jar xf "{{ atlassian_confluence_dir }}/confluence/WEB-INF/lib/confluence-{{ atlassian_confluence_version }}.jar"
+    chdir="{{ atlassian_confluence_tmp_jar_dir }}"
+    creates="{{ atlassian_confluence_properties_files }}"
+  changed_when: false
+  
+- name: Detect build number
+  shell: grep ^build\.number "{{ atlassian_confluence_properties_files }}" | sed "s/build.number=\([0-9]*\)/\1/g"
+  register: build
+  changed_when: false
+
+- name: Set build number fact
+  set_fact:
+    atlassian_confluence_buildnumber: "{{ build.stdout }}"

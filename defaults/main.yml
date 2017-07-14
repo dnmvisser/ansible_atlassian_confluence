@@ -1,26 +1,34 @@
 ---
 # defaults file for atlassian-confluence
-atlassian_confluence_version: CHANGEME
+atlassian_confluence_version: 6.3.1
 
-atlassian_confluence_baseurl: https://www.atlassian.com/software/confluence/downloads/binary
+atlassian_confluence_baseurl: https://downloads.atlassian.com/software/confluence/downloads
 atlassian_confluence_basedir: /opt/atlassian
-atlassian_confluence_home: /srv/atlassian/confluence
+atlassian_confluence_home: /home/confluence
 
 atlassian_confluence_user: confluence
 atlassian_confluence_uid: 10000
 atlassian_confluence_group: confluence
 atlassian_confluence_gid: 10000
 
-
 atlassian_confluence_server_xml: []
 
 atlassian_confluence_catalina_opts: []
 
+# database
+atlassian_confluence_db_name: confluence
+atlassian_confluence_db_username: confluence_user
+atlassian_confluence_db_password: hackme
+# This corresponds with the 'Ensure to listen on network socket' database task
+atlassian_confluence_db_host: ip6-localhost
+atlassian_confluence_db_port: 5432
 
-# related to CrowdSSO
-atlassian_confluence_crowd: false
-atlassian_confluence_crowd_url: http://localhost:8095/crowd
 
-atlassian_confluence_crowd_properties: []
+# Application admin info
+atlassian_confluence_admin_username: admin
+atlassian_confluence_admin_password: hackme
+atlassian_confluence_admin_email: root@localhost
+atlassian_confluence_admin_fullname: "LocalAdmin"
+
 
 atlassian_confluence_seraph_config: []

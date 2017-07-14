@@ -1,0 +1,91 @@
+---
+#
+- name: Install Postgres packages 
+  action: apt pkg={{item}} state=installed
+  with_items:
+    - postgresql
+    - postgresql-server-dev-all
+    - postgresql-contrib
+    - python-psycopg2
+    - curl
+
+- name: Ensure the PostgreSQL service is running
+  service: name=postgresql state=started enabled=yes
+
+  
+- name: Establish pg_hba.conf location
+  command: pg_conftool -s show hba_file
+  register: hba_output
+  changed_when: false
+
+# This corresponds with the 'atlassian_confluence_db_host' var
+- name: Ensure to listen on network socket
+  lineinfile:
+    path: "{{ hba_output.stdout_lines[0] | dirname }}/postgresql.conf"
+    line: listen_addresses = '::'
+    regexp: '#?.*listen_addresses.*'
+  notify: postgresql_restart
+
+
+- name: Ensure the database role is available
+  become_user: postgres
+  postgresql_user: name="{{ atlassian_confluence_db_username }}"
+    password="{{ atlassian_confluence_db_password }}"
+    role_attr_flags="CREATEDB,NOINHERIT,NOCREATEROLE,NOSUPERUSER"
+
+
+# TODO check for system locale to be en_US.UTF-8 first...
+- name: Ensure the database is available
+  become_user: postgres
+  postgresql_db: name="{{ atlassian_confluence_db_name }}"
+    owner="{{ atlassian_confluence_db_username }}"
+    encoding='UTF-8'
+    lc_collate='en_US.UTF-8'
+    lc_ctype='en_US.UTF-8'
+    template='template0'
+    state=present
+  register: db_created
+
+
+# Ensure database credentials are configured.
+# Also requires a jvm reload.
+# Do this only when setup has completed (i.e. not at deploy time)
+- block:
+  - name: Ensure database password is configured in confluence.cfg.xml
+    lineinfile:
+      path: "{{ atlassian_confluence_home }}/confluence.cfg.xml"
+      regexp: '(.*name="hibernate.connection.password">).+(</property>)'
+      line: '\1{{ atlassian_confluence_db_password }}\2'
+      backrefs: yes
+    notify: confluence_restart
+
+  - name: Ensure DSN URL is configured in confluence.cfg.xml
+    lineinfile:
+      path: "{{ atlassian_confluence_home }}/confluence.cfg.xml"
+      regexp: '(.*name="hibernate.connection.url">).+(</property>)'
+      line: '\1jdbc:postgresql://{{ atlassian_confluence_db_host }}:{{ atlassian_confluence_db_port }}/{{ atlassian_confluence_db_name }}\2'
+      backrefs: yes
+    notify: confluence_restart
+    
+  - name: Ensure database username is configured in confluence.cfg.xml
+    lineinfile:
+      path: "{{ atlassian_confluence_home }}/confluence.cfg.xml"
+      regexp: '(.*name="hibernate.connection.username">).+(</property>)'
+      line: '\1{{ atlassian_confluence_db_username }}\2'
+      backrefs: yes
+    notify: confluence_restart
+  
+  - meta: flush_handlers
+
+  - name: wait until application is actually up again
+    command: curl --noproxy localhost --head --silent 'http://localhost:8090/'
+    until: result.stdout.find("200 OK") != -1
+    retries: 99999
+    delay: 5
+    register: result
+    changed_when: false
+    args:
+      warn: false
+    tags: xmltest
+  
+  when: atlassian_confluence_setupstep == 'complete'

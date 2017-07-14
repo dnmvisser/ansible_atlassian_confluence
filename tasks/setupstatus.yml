@@ -1,0 +1,16 @@
+---
+#
+- name: Check if config file {{ atlassian_confluence_cfg_xml }} exists
+  stat: path="{{ atlassian_confluence_cfg_xml }}"
+  register: cfgxml
+
+- block:
+  - name: Find out setup state
+    xml: file="{{ atlassian_confluence_cfg_xml }}"
+      xpath=/confluence-configuration/setupStep
+      content=text
+    register: setup
+
+  - set_fact:
+      atlassian_confluence_setupstep: "{{ setup.matches[0].setupStep }}"
+  when: cfgxml.stat.exists

@@ -1,0 +1,30 @@
+---
+#
+
+- name: Ensure SQL code for banner update is available
+  become_user: postgres
+  copy:
+    dest: /tmp/banner.sql
+    content: |
+      -- Conditional SQL query to update HTML banner
+      UPDATE bandana SET bandanavalue =
+      REGEXP_REPLACE(
+        bandanavalue,
+        '(<afterBodyStart>).*(<\/afterBodyStart>)',
+        '\1{{ atlassian_confluence_custom_html_body_begin }}\2'
+      )
+      WHERE bandanakey = 'atlassian.confluence.settings' AND
+      REGEXP_REPLACE(
+        bandanavalue,
+        '.*<afterBodyStart>(.*)<\/afterBodyStart>.*',
+        '\1'
+      ) != '{{ atlassian_confluence_custom_html_body_begin }}'
+    mode: 0600
+
+- name: Ensure banner is updated through SQL query
+  become_user: postgres
+  command: psql -d {{ atlassian_confluence_db_name|e }} -f /tmp/banner.sql
+  register: update_banner
+  changed_when: update_banner.stdout != 'UPDATE 0'
+  notify:
+    - confluence_restart

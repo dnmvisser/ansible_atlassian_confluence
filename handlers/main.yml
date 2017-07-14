@@ -1,2 +1,10 @@
 ---
 # handlers file for atlassian-confluence
+- name: confluence_restart
+  service: name=confluence state=restarted
+  
+- name: postgresql_reload
+  service: name=postgresql state=reloaded
+  
+- name: postgresql_restart
+  service: name=postgresql state=restarted

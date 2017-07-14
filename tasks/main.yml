@@ -1,6 +1,32 @@
 ---
 
-- include: application.yml
+- include: setupstatus.yml
+  tags: confluence,setupstatus
+  
+- include: database.yml
+  tags: confluence,database
 
-- include: crowdsso.yml
-  when: atlassian_confluence_crowd
+- include: application.yml
+  tags: confluence,install
+
+- include: getbackup.yml
+  tags: confluence,getbackup
+  when: atlassian_confluence_setupstep != 'complete'
+
+- include: setup.yml
+  tags: confluence,setup
+  when: atlassian_confluence_setupstep != 'complete'
+
+- include: banner.yml
+  tags: banner
+  when: atlassian_confluence_custom_html_body_begin is defined
+
+- include: addons.yml
+  tags: confluence,addons
+
+- include: addon_modules.yml
+  when: addon_modules is defined
+  tags: confluence,addons,modules
+
+- include: http_authenticator.yml
+  tags: confluence,http_auth

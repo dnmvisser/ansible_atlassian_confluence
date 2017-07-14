@@ -1,0 +1,9 @@
+---
+#
+- name: Link backup file to confluence homedir
+  file:
+    src: "{{ atlassian_confluence_backup_zip }}"
+    state: hard
+    force: yes
+    dest: "{{ atlassian_confluence_home }}/restore/backup.zip"
+  tags: sync

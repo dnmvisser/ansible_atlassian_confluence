@@ -1,0 +1,89 @@
+---
+# 
+
+- name: Download remoteuserauth jar
+  get_url: url='https://github.com/chauth/confluence_http_authenticator/raw/master/releases/remoteUserAuth-2.7.1.jar'
+    dest="{{ atlassian_confluence_dir}}/confluence/WEB-INF/lib/remoteuserauth.jar"
+
+- name: Install remoteUserAuth properties
+  template: src=remoteUserAuthenticator.properties.j2
+    dest="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/remoteUserAuthenticator.properties"
+  notify: confluence_restart
+
+- name: Configure login URL in seraph-config.xml
+  xml: file="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/seraph-config.xml"
+    xpath=/security-config/parameters/init-param[param-name='login.url']/param-value
+    value=/mellon/login?ReturnTo=${originalurl}
+  notify: confluence_restart
+
+- name: Configure login link URL in seraph-config.xml
+  xml: file="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/seraph-config.xml"
+    xpath=/security-config/parameters/init-param[param-name='link.login.url']/param-value
+    value=/mellon/login?ReturnTo=${originalurl}
+  notify: confluence_restart
+
+- name: Enable RemoteUser authenticator in seraph-config.xml
+  xml: file="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/seraph-config.xml"
+    xpath=/security-config/authenticator
+    attribute=class
+    value=shibauth.confluence.authentication.shibboleth.RemoteUserAuthenticator
+    ensure=present
+  notify: confluence_restart
+
+  # https://github.com/chauth/confluence_http_authenticator/issues/32
+- name: Work-around to make REST calls work
+  lineinfile: dest="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/log4j.properties"
+    regexp='^#(log4j.logger.com.atlassian.seraph=DEBUG)'
+    line='\1'
+    backrefs=yes
+
+- name: Set directory to store unpacked jar contents
+  set_fact: 
+    unpacked_jar_path: "{{ atlassian_confluence_dir }}/_unpacked"
+  notify: confluence_restart
+
+- name: Ensure directory for unpacked Confluence jar is available
+  file: path="{{ unpacked_jar_path }}"
+    state=directory
+  notify: confluence_restart
+
+- name: Unpack Confluence jar
+  unarchive: src="{{ atlassian_confluence_dir }}/confluence/WEB-INF/lib/confluence-{{ atlassian_confluence_version }}.jar"
+    dest="{{ unpacked_jar_path }}"
+    copy=no
+    creates="{{ unpacked_jar_path }}/META-INF"
+  register: jar_unpacked
+  notify: confluence_restart
+
+- name: Copy xwork.xml
+  copy: src="{{ unpacked_jar_path }}/xwork.xml"
+    dest="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/xwork.xml"
+    remote_src=true
+  when: jar_unpacked.changed
+  notify: confluence_restart
+
+- name: Configure logout links in xwork.xml
+  xml: file="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/xwork.xml"
+    xpath=/xwork/package/action[@name='logout']/result[@name='success'][@type='redirect']
+    value=/mellon/logout?ReturnTo=%2Fdashboard.action
+  notify: confluence_restart
+
+- name: Ensure parent plugins dir is available
+  file: path="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/plugins"
+    state=directory
+  notify: confluence_restart
+
+- name: Copy user-management.xml
+  copy: src="{{ unpacked_jar_path }}/plugins/user-management.xml"
+    dest="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/plugins"
+    remote_src=true
+  when: jar_unpacked.changed
+  notify: confluence_restart
+  
+- name: Configure user invitation URL in user-management.xml
+  xml: file="{{ atlassian_confluence_dir }}/confluence/WEB-INF/classes/plugins/user-management.xml"
+    xpath=/atlassian-plugin/web-item[@key='browse-users-tab-invite']/link[@linkId='invite-tab-link']
+    value=/Some_specific_page_with_instructions
+  notify: confluence_restart
+
+- meta: flush_handlers 

@@ -1,0 +1,118 @@
+---
+# Since Atlassian does NOT provide either preseed config options or an API,
+# we will have to do this the hard way.
+
+# TODO better security: have jvm only listen on localhost
+# TODO How can we check if Setup has finished? if table exists?
+
+- name: "Choose External Database: PostgreSQL"
+  uri:
+    url:  http://localhost:8090/setup/setupdbchoice.action
+    method: POST
+    body: "dbChoiceSelect=postgresql&standard=External+Database"
+    status_code: 302
+    timeout: 3600
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+  register: wizard
+
+- name: "Configure Database: Direct JDBC"
+  uri:
+    url:  http://localhost:8090/setup/setupdb.action
+    method: POST
+    body: "selectedDatabaseType=database-type-standard&database=postgresql"
+    status_code:  302
+    timeout:  3600
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+      Cookie: "{{ wizard.set_cookie }}"
+    
+- name: "Setup Database (takes a while...)"
+  uri:
+    url:  http://localhost:8090/setup/setupstandarddb.action
+    method: POST
+    body: "dbConfigInfo.driverClassName=org.postgresql.Driver&dbConfigInfo.databaseUrl=jdbc%3Apostgresql%3A%2F%2F{{ atlassian_confluence_db_host | urlencode }}%3A5432%2F{{ atlassian_confluence_db_name | urlencode }}&dbConfigInfo.userName={{ atlassian_confluence_db_username | urlencode }}&dbConfigInfo.password={{ atlassian_confluence_db_password | urlencode }}&database=postgresql&setup-next-button=Next"
+    status_code:  302
+    timeout:  3600
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+      Cookie: "{{ wizard.set_cookie }}"
+
+
+# Without this hidden step you will receive a 500 error near the end:
+# 'No remote JIRA directory found. Should have already been created in the previous step'
+- name: "Set up paths"
+  uri:
+    url:  http://localhost:8090/setup/setuppaths.action
+    method: GET
+    status_code:  200
+    follow_redirects: all
+    timeout:  3600
+    headers:
+      Cookie: "{{ wizard.set_cookie }}"
+
+- name: "Load Content: Restore backup"
+  uri:
+    url:  http://localhost:8090/setup/setupdata.action
+    method: POST
+    body: "dbchoiceSelect=Restore+From+Backup&contentChoice=import"
+    status_code:  302
+    timeout:  3600
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+      Cookie: "{{ wizard.set_cookie }}"
+
+- name: "Get security token"
+  uri:
+    url:  http://localhost:8090/setup/setup-restore-start.action
+    method: GET
+    status_code:  200
+    follow_redirects: all
+    timeout:  3600
+    return_content: yes
+    headers:
+      Cookie: "{{ wizard.set_cookie }}"
+  register: atl
+
+- name: find atlk_toekn
+  set_fact: atl_token="{{ atl.content | regex_replace('(?s).*([a-z0-9]{40}).*', '\\1') }}"
+
+# Kick off the restore by posting the right atl_token.
+# In response, we get back a taskID
+- name: "Select backup to restore..."
+  uri:
+    url:  http://localhost:8090/setup/setup-restore-local.action
+    method: POST
+    body: "atl_token={{ atl_token }}&buildIndex=true&localFileName=backup.zip&edit=Restore"
+    status_code:  200
+    timeout:  3600
+    return_content: yes
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+      Cookie: "{{ wizard.set_cookie }}"
+  register: restore_response
+
+- set_fact: taskid="{{ restore_response.content | regex_replace('(?s).*([a-z0-9]{8}-([a-z0-9]{4}-){3}[a-z0-9]{12}).*', '\\1') }}"
+
+# Poll the long running task using the taskID that we just acquired
+- name: "Poll backup import process"
+  uri:
+    url:  http://localhost:8090/setup/longrunningtaskxml.action?taskId={{ taskid }}
+    status_code:  200
+    timeout:  3600
+    return_content: yes
+    headers:
+      Cookie: "{{ wizard.set_cookie }}"
+  register: longrunner_status
+  until: "'<currentStatus>Complete.</currentStatus>' in longrunner_status.content"
+  delay: 5
+  retries: 1000
+
+- name: "Finish setup"
+  uri:
+    url:  http://localhost:8090/setup/finishsetup.action
+    method: POST
+    status_code:  200
+    timeout:  3600
+    headers:
+      Cookie: "{{ wizard.set_cookie }}"

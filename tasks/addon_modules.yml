@@ -1,0 +1,44 @@
+---
+# This task requires a new token
+- name: "Checking addon module status"
+  uri:
+    url: http://localhost:8090/rest/plugins/1.0/{{ item.key }}
+    method: GET
+    user: "{{ atlassian_confluence_admin_username }}"
+    password: "{{ atlassian_confluence_admin_password }}"
+    body_format: json
+    HEADER_Content-Type: "application/vnd.atl.plugins.plugin.module+json"
+    status_code: 202,200
+    timeout: 3600
+    force_basic_auth: yes
+    return_content: true
+    body:
+      enabled: "{{ item.value.enabled }}"
+  register: module_status
+  with_dict: "{{ addon_modules }}"
+  
+  #- name: "Debug"
+  #debug: var=(item|from_json)['enabled']
+  #with_items: "{{ module_status.results|json_query('[*].content')}}"
+  
+
+- name: "Configuring addon module"
+  uri:
+    url: "http://localhost:8090/rest/plugins/1.0/{{ item.key }}"
+    method: PUT
+    user: "{{ atlassian_confluence_admin_username }}"
+    password: "{{ atlassian_confluence_admin_password }}"
+    body_format: json
+    HEADER_Content-Type: "application/vnd.atl.plugins.plugin.module+json"
+    force_basic_auth: yes
+    #return_content: true
+    body:
+      enabled: "{{ item.value.enabled }}"
+  with_dict: "{{ addon_modules }}"
+#  register: addon_module_response
+    #when: module_status.results|json_query('[*].content')|from_json['enabled'] == true
+  #changed_when: (config_plugin_response.content|from_json)['enabled'] != true
+  
+#- name: "Debug"
+#  debug: var=item|from_json
+#  with_items: "{{ addon_module_response.results|json_query('[*].content')}}"

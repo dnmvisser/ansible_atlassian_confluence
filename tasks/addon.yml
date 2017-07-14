@@ -1,0 +1,24 @@
+---
+# This task requires a new token
+
+- include: rest_init.yml
+
+
+- name: "Installing add-on: {{ plugin }}"
+  uri:
+    url: http://localhost:8090/rest/plugins/1.0/?token={{rest_init.upm_token}}
+    method: POST
+    user: "{{ atlassian_confluence_admin_username }}"
+    password: "{{ atlassian_confluence_admin_password }}"
+    body_format: json
+    status_code: 202,200
+    timeout: 3600
+    force_basic_auth: yes
+    return_content: true
+    headers:
+      Content-Type: "application/vnd.atl.plugins.install.uri+json"
+    body:
+      pluginUri: "https://marketplace.atlassian.com/download/plugins/{{ plugin }}"
+  register: install_plugin_response
+  # When this task is run, there has always been a change
+  changed_when: install_plugin_response.status == 202

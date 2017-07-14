@@ -1,2 +1,15 @@
 ---
 # vars file for atlassian-confluence
+atlassian_confluence_download_url: "{{ atlassian_confluence_baseurl }}/atlassian-confluence-{{ atlassian_confluence_version }}.tar.gz"
+atlassian_confluence_download_tmp: "{{ atlassian_confluence_basedir }}/atlassian-confluence-{{ atlassian_confluence_version }}.tar.gz"
+atlassian_confluence_dir: "{{ atlassian_confluence_basedir }}/atlassian-confluence-{{ atlassian_confluence_version }}"
+
+atlassian_confluence_cfg_xml: "{{ atlassian_confluence_home }}/confluence.cfg.xml"
+
+
+
+# We start with this setup status (see templates/confluence.cfg.xml)
+atlassian_confluence_setupstep: setupdbchoice-start
+
+atlassian_confluence_tmp_jar_dir: "/tmp/atlassian_confluence_tmp_jar_dir"
+atlassian_confluence_properties_files: "{{ atlassian_confluence_tmp_jar_dir }}/com/atlassian/confluence/default.properties"

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<confluence-configuration>
+  <setupStep>{{ atlassian_confluence_setupstep }}</setupStep>
+  <setupType>custom</setupType>
+  <buildNumber>{{ atlassian_confluence_buildnumber }}</buildNumber>
+  <properties>
+      <property name="atlassian.license.message">{{ atlassian_confluence_license | regex_replace('\s', '') }}</property>
+      <property name="confluence.setup.server.id">{{ atlassian_confluence_server_id | regex_replace('\s', '')  }}</property>
+    <property name="confluence.webapp.context.path"></property>
+    <property name="lucene.index.dir">${localHome}/index</property>
+    <property name="synchrony.btf">true</property>
+    <property name="synchrony.encryption.disabled">true</property>
+    <property name="synchrony.proxy.enabled">true</property>
+    <property name="webwork.multipart.saveDir">${localHome}/temp</property>
+  </properties>
+</confluence-configuration>

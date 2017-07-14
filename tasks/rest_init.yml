@@ -1,0 +1,13 @@
+---
+# New token needed for every action ;-)
+- name: "Initialise REST API"
+  uri: url="http://localhost:8090{{ path | default ('/rest/plugins/1.0/')}}?os_authType=basic"
+    method=GET
+    user="{{ atlassian_confluence_admin_username }}"
+    password="{{ atlassian_confluence_admin_password }}"
+    status_code=200
+    timeout=300
+    return_content=yes
+  register: rest_init
+  tags: restinit
+  #no_log: true
