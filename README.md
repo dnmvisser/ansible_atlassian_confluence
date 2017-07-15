@@ -2,9 +2,8 @@ Federated Atlassian Confluence
 ==============================
 
 An Ansible role for fully automated deployment of Atlassian Confluence with federated authentication, based on a zipped backup file.
-This role was created because Atlassian does not offer a good way to deploy Confluence; their upgrade and installation paths contain many tedious manual steps: https://jira.atlassian.com/browse/CONF-45381.
-
-Since there is no way of preseeding configuration files, or use an API to do this post-install, this role uses HTTP requests to fill in the web forms needed to set things up.
+This role was created because Atlassian does not offer a good way to deploy Confluence; their upgrade and installation paths contain many tedious browser clicking steps: https://jira.atlassian.com/browse/CONF-45381.
+This roles automates that using a sequence of HTTP requests to localhost.
 
 
 Requirements
@@ -12,26 +11,24 @@ Requirements
 
 This role assumes you want to run a production instance, so **you need a valid license** for this to work. See the example playbook on how to configure this. You can get free one-month trial licenses, see https://confluence.atlassian.com/display/DOC/Start+your+trial.
 
-The role installs OpenJDK which is [not officially supported by Atlassian](https://confluence.atlassian.com/confkb/is-openjdk-supported-by-confluence-297667642.html). It runs fine, but if you need "support" you should Oracle JDK installed.
+The role installs OpenJDK which is [not officially supported by Atlassian](https://confluence.atlassian.com/confkb/is-openjdk-supported-by-confluence-297667642.html). It runs fine, but if you need "support" you should use Oracle JDK installed.
 
-The role uses PostgreSQL, but with some minor adjustments you can also use MySQL.
-
-Currently written for Ubuntu 16.04 LTS, but with little adjustments it should work on other distros.
+The role uses Ubuntu 16.04 and PostgreSQL, but with some minor adjustments you should be able to use other distros and databases. Since it will restore a backup file, there is no _need_ to stick to a different existing database though.
 
 Role Variables
 --------------
 
-`atlassian_confluence_version` is the verion you want to install. This is the only one variable you need to change, the others are optional.
+`atlassian_confluence_version` is the verion you want to install. 
 
-`atlassian_confluence_baseurl` is the URL where you can find the *tar.gz* files. If you have your own mirror, change it.
+`atlassian_confluence_baseurl` is the URL where to retrieve the *tar.gz* files from. Defaults to the official Atlassian web site. Since the tarballs are quite large, it can make sense to mirror them locally. Note that Atlassian [does not provide any checksums for their products](https://jira.atlassian.com/browse/JRASERVER-63158), so keep your fingers crossed.
 
-`atlassian_confluence_basedir` is path where to download and extract the *tar.gz* file, defaults to `/opt/atlassian`.
+`atlassian_confluence_basedir` is path where to download and extract the *tar.gz* file. Defaults to `/opt/atlassian`.
 
-`atlassian_confluence_home` is the `confluence.home`, defaults to `/home/confluence`.
+`atlassian_confluence_home` is the `confluence.home` variable. Defaults to `/home/confluence`.
 
-`atlassian_confluence_user`, `atlassian_confluence_uid`, `atlassian_confluence_group`, `atlassian_confluence_gid` are variables to set up a dedicated user/group to run the application.
+`atlassian_confluence_user`, `atlassian_confluence_uid`, `atlassian_confluence_group`, `atlassian_confluence_gid` are variables to set up a dedicated user/group to run the application. Default to `confluence`, `confluence`, 10000, and 10000.
 
-`atlassian_confluence_server_xml` is list of changes to `server.xml` It uses XPath to edit/add/remove exiting properties.
+`atlassian_confluence_server_xml` is list of changes to `server.xml` It uses XPath to edit/add/remove exiting properties. Defaults to settings for an HTTPS set-up:
 
     atlassian_confluence_server_xml:
     - xpath: /Server/Service/Connector
@@ -43,7 +40,7 @@ Role Variables
       attribute: scheme
       value: https
 
-`atlassian_confluence_catalina_opts` is the list of custom *CATALINA_OPTS* properties. At the moment you can't change the existing one - only append them.
+`atlassian_confluence_catalina_opts` is the list of custom *CATALINA_OPTS* properties. At the moment you can't change the existing set - only append it.
 
 
 Dependencies
@@ -51,7 +48,7 @@ Dependencies
 
 * The `cmprescott.xml` role to manipulate XML files.
 * The `dnmvisser.mellon_sp` role to deploy mod_mellon.
-* The `geerlingsguy.apache` role to deploy Apache.
+* The `geerlingsguy.apache` role to deploy Apache 2.4.
 * A SAML2 IdP.
 * An X-509 key/cert for use with Apache.
 
