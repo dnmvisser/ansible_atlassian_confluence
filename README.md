@@ -40,7 +40,9 @@ Role Variables
       attribute: scheme
       value: https
 
-`atlassian_confluence_catalina_opts` is the list of custom *CATALINA_OPTS* properties. At the moment you can't change the existing set - only append it.
+`atlassian_confluence_catalina_opts_xms` and `atlassian_confluence_catalina_opts_xms` change the default JVM heap space (from 1024m).
+`atlassian_confluence_catalina_opts` is the list of _additional_ *CATALINA_OPTS* properties. 
+At the moment you can't yet change the other default values.
 
 
 Dependencies
@@ -49,8 +51,9 @@ Dependencies
 * The `cmprescott.xml` role to manipulate XML files.
 * The `dnmvisser.mellon_sp` role to deploy mod_mellon.
 * The `geerlingsguy.apache` role to deploy Apache 2.4.
+* An X.509 key pair for Apache to do HTTPS.
+* An X.509 key pair for use with the mod_mellon SAML service provider.
 * A SAML2 IdP.
-* An X-509 key/cert for use with Apache.
 
 
 

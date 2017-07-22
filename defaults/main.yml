@@ -15,6 +15,9 @@ atlassian_confluence_server_xml: []
 
 atlassian_confluence_catalina_opts: []
 
+atlassian_confluence_catalina_opts_xms: 1024m
+atlassian_confluence_catalina_opts_xmx: 1024m
+
 # database
 atlassian_confluence_db_name: confluence
 atlassian_confluence_db_username: confluence_user

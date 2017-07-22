@@ -101,7 +101,7 @@
   with_items: "{{ atlassian_confluence_server_xml }}"
   notify: confluence_restart
 
-- name: Restrict access to localhost
+- name: Restrict direct JVM access to localhost
   xml: file="{{ atlassian_confluence_dir }}/conf/server.xml"
     xpath=/Server/Service/Connector
     ensure=present
@@ -109,19 +109,44 @@
     value='::1'
   notify: confluence_restart
 
-- name: Catalina enviroment settings (1)
+# setenv.sh manipulation
+- name: Ensure extra Catalina enviroment settings are configured (1)
   lineinfile: dest="{{ atlassian_confluence_dir }}/bin/setenv.sh"
     regexp='^CATALINA_OPTS_ANSIBLE='
     line='CATALINA_OPTS_ANSIBLE="{{ atlassian_confluence_catalina_opts|join(" ")}}"'
     insertbefore='^CATALINA_OPTS'
   notify: confluence_restart
-
-- name: Catalina enviroment settings (2)
+  tags: [catalina, catalina_opts, setenv]
+  
+- name: Ensure extra Catalina enviroment settings are configured (2)
   lineinfile: dest="{{ atlassian_confluence_dir }}/bin/setenv.sh"
     regexp='^CATALINA_OPTS="\$\{CATALINA_OPTS_ANSIBLE\} '
     line='CATALINA_OPTS="${CATALINA_OPTS_ANSIBLE} ${CATALINA_OPTS}"'
     insertbefore='^export CATALINA_OPTS'
   notify: confluence_restart
+  tags: [catalina, catalina_opts, setenv]
+
+- name: Ensure minimum JVM heap size is configured
+  lineinfile:
+    dest: "{{ atlassian_confluence_dir }}/bin/setenv.sh"
+    regexp: '^(.*Xms)\d+[kKmMgG](.*)$'
+    backrefs: yes
+    # https://serverfault.com/questions/825372/ansible-replace-regex-with-variable
+    line: '\g<1>{{ atlassian_confluence_catalina_opts_xms }}\2'
+  notify: confluence_restart
+  tags: [catalina, catalina_opts, setenv]
+
+- name: Ensure maximum JVM heap size is configured
+  lineinfile:
+    dest: "{{ atlassian_confluence_dir }}/bin/setenv.sh"
+    regexp: '^(.*Xmx)\d+[kKmMgG](.*)$'
+    backrefs: yes
+    # https://serverfault.com/questions/825372/ansible-replace-regex-with-variable
+    line: '\g<1>{{ atlassian_confluence_catalina_opts_xmx }}\2'
+  notify: confluence_restart
+  tags: [catalina, catalina_opts, setenv]
+  
+
 
   # Don't start out with a fresh config after the install succedded. 
   # Reconsider using XML module to work on this file - that'll be less destructive that just copying...
